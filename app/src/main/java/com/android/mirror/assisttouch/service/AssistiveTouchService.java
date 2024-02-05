@@ -130,6 +130,8 @@ public class AssistiveTouchService extends AccessibilityService {
                 }
             });
 
+            private float initX = 0f;
+            private float initY = 0f;
 
             @Override
             public boolean onTouch(View v, MotionEvent event) {
@@ -141,12 +143,16 @@ public class AssistiveTouchService extends AccessibilityService {
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
                         isMoving = false;
+                        initX = rawX;
+                        initY = rawY;
                         break;
                     case MotionEvent.ACTION_UP:
                         AssistiveTouchService.this.setAssistiveTouchViewAlign();
                         break;
                     case MotionEvent.ACTION_MOVE:
-                        isMoving = true;
+                        if (Math.abs(rawX - initX) > 50 || Math.abs(rawY - initY) > 50) {
+                            isMoving = true;
+                        }
                         mParams.x = (int) (rawX - mAssistiveTouchView.getMeasuredWidth() / 2);
                         mParams.y = (int) (rawY - mAssistiveTouchView.getMeasuredHeight() / 2 - mStatusBarHeight);
                         mWindowManager.updateViewLayout(mAssistiveTouchView, mParams);
@@ -157,20 +163,6 @@ public class AssistiveTouchService extends AccessibilityService {
                     return false;
             }
         });
-
-//        mAssistiveTouchView.setOnClickListener(view -> {
-//            performGlobalAction(GLOBAL_ACTION_BACK);
-//        });
-//        mAssistiveTouchView.setOnLongClickListener(view -> {
-//            try {
-//                Class<?> cls = Class.forName("android.os.EinkManager");
-//                Method method = cls.getMethod("sendOneFullFrame");
-//                Object einkManager = this.getSystemService("eink");
-//                method.invoke(einkManager);
-//            } catch (Exception ignored) {
-//            }
-//            return true;
-//        });
     }
 
 
