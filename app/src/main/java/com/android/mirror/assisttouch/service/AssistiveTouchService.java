@@ -42,7 +42,6 @@ public class AssistiveTouchService extends AccessibilityService {
     private int lastAssistiveTouchViewY;
 
     private View mAssistiveTouchView;
-    private View mInflateAssistiveTouchView;
     private WindowManager mWindowManager;
     private WindowManager.LayoutParams mParams;
 
@@ -82,7 +81,6 @@ public class AssistiveTouchService extends AccessibilityService {
         mInflater = LayoutInflater.from(this);
         mAssistiveTouchView = mInflater.inflate(R.layout.assistive_touch_layout, null);
         mAssistiveTouchView.setAlpha(0.4f);
-        mInflateAssistiveTouchView = mInflater.inflate(R.layout.assistive_touch_inflate_layout, null);
     }
 
     private void calculateForMyPhone() {
@@ -90,8 +88,6 @@ public class AssistiveTouchService extends AccessibilityService {
         mScreenWidth = displayMetrics.widthPixels;
         mScreenHeight = displayMetrics.heightPixels;
         mStatusBarHeight = SystemsUtils.getStatusBarHeight(this);
-
-        mInflateAssistiveTouchView.setLayoutParams(new WindowManager.LayoutParams((int) (mScreenWidth * 0.75), (int) (mScreenWidth * 0.75)));
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -229,7 +225,6 @@ public class AssistiveTouchService extends AccessibilityService {
             switch (msg.what) {
                 case 2:
                 default:
-                    mWindowManager.removeView(mInflateAssistiveTouchView);
                     mAssistiveTouchView.setAlpha(0.4f);
                     break;
             }
