@@ -8,7 +8,10 @@ import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
 import android.app.Service;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.PixelFormat;
@@ -46,7 +49,6 @@ public class AssistiveTouchService extends AccessibilityService {
     private WindowManager.LayoutParams mParams;
 
     private Timer mTimer;
-    private Handler mHandler;
 
     private LayoutInflater mInflater;
 
@@ -75,7 +77,6 @@ public class AssistiveTouchService extends AccessibilityService {
 
     private void init() {
         mTimer = new Timer();
-        mHandler = new MyHandler();
         mParams = new WindowManager.LayoutParams();
         mWindowManager = (WindowManager) this.getSystemService(WINDOW_SERVICE);
         mInflater = LayoutInflater.from(this);
@@ -219,22 +220,26 @@ public class AssistiveTouchService extends AccessibilityService {
         myAssistiveTouchAnimator(lastAssistiveTouchViewX, mParams.x, lastAssistiveTouchViewY, mParams.y, false).start();
     }
 
-    private class MyHandler extends Handler {
-        @Override
-        public void handleMessage(Message msg) {
-            switch (msg.what) {
-                case 2:
-                default:
-                    mAssistiveTouchView.setAlpha(0.4f);
-                    break;
-            }
-            super.handleMessage(msg);
-        }
-    }
-
     @Override
     public void onDestroy() {
         super.onDestroy();
+        unregisterReceiver(receiver);
         mWindowManager.removeView(mAssistiveTouchView);
+    }
+
+    private final BroadcastReceiver receiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if ("info.plateaukao.action.DISABLE_SERVICE".equals(intent.getAction())) {
+                disableSelf();
+            }
+        }
+    };
+
+    @Override
+    protected void onServiceConnected() {
+        super.onServiceConnected();
+        IntentFilter filter = new IntentFilter("info.plateaukao.action.DISABLE_SERVICE");
+        registerReceiver(receiver, filter);
     }
 }

@@ -17,22 +17,7 @@ public class MainActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        if (!Settings.canDrawOverlays(this)) {
-            Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName()));
-            startActivityForResult(intent, 0);
-        }
-
-        if (!SystemsUtils.isAccessibilityServiceEnabled(getApplicationContext(), AssistiveTouchService.class)) {
-            openAccessibilitySettings(this);
-        }
-
-        Intent intent = new Intent(MainActivity.this, AssistiveTouchService.class);
-        if (isMyServiceRunning())
-            stopService(intent);
-        else
-            startService(intent);
-
-        finish();
+        checkPermissionsAndRun();
     }
 
     private boolean isMyServiceRunning() {
@@ -45,9 +30,41 @@ public class MainActivity extends Activity {
         return false;
     }
 
+    private void checkPermissionsAndRun() {
+        if (!Settings.canDrawOverlays(this)) {
+            Intent intent = new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + getPackageName()));
+            startActivityForResult(intent, 0);
+            return;
+        }
+
+        if (!SystemsUtils.isAccessibilityServiceEnabled(getApplicationContext(), AssistiveTouchService.class)) {
+            openAccessibilitySettings(this);
+            return;
+        }
+
+        Intent intent = new Intent(this, AssistiveTouchService.class);
+        if (isMyServiceRunning()) {
+            Intent disableServiceIntent = new Intent("info.plateaukao.action.DISABLE_SERVICE");
+            sendBroadcast(disableServiceIntent);
+        } else {
+            startService(intent);
+        }
+
+        finish();
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        if (SystemsUtils.isAccessibilityServiceEnabled(getApplicationContext(), AssistiveTouchService.class)){
+            finish();
+        };
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+        checkPermissionsAndRun();
     }
 
     private void openAccessibilitySettings(Context context) {
