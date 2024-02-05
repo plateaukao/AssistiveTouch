@@ -34,9 +34,6 @@ public class AssistiveTouchService extends AccessibilityService {
 
     private boolean isMoving;
 
-    private float rawX;
-    private float rawY;
-
     private int mScreenWidth;
     private int mScreenHeight;
     private int mStatusBarHeight;
@@ -84,6 +81,7 @@ public class AssistiveTouchService extends AccessibilityService {
         mWindowManager = (WindowManager) this.getSystemService(WINDOW_SERVICE);
         mInflater = LayoutInflater.from(this);
         mAssistiveTouchView = mInflater.inflate(R.layout.assistive_touch_layout, null);
+        mAssistiveTouchView.setAlpha(0.4f);
         mInflateAssistiveTouchView = mInflater.inflate(R.layout.assistive_touch_inflate_layout, null);
     }
 
@@ -111,6 +109,7 @@ public class AssistiveTouchService extends AccessibilityService {
             private GestureDetector gestureDetector = new GestureDetector(AssistiveTouchService.this.getBaseContext(), new GestureDetector.SimpleOnGestureListener() {
                 @Override
                 public void onLongPress(MotionEvent e) {
+                    if (isMoving) return;
                     try {
                         Class<?> cls = Class.forName("android.os.EinkManager");
                         Method method = cls.getMethod("sendOneFullFrame");
@@ -134,13 +133,14 @@ public class AssistiveTouchService extends AccessibilityService {
                 }
             });
 
+
             @Override
             public boolean onTouch(View v, MotionEvent event) {
-//                gestureDetector.onTouchEvent(event);
-//                return true;
+                gestureDetector.onTouchEvent(event);
 
-                rawX = event.getRawX();
-                rawY = event.getRawY();
+                float rawX = event.getRawX();
+                float rawY = event.getRawY();
+
                 switch (event.getAction()) {
                     case MotionEvent.ACTION_DOWN:
                         isMoving = false;
@@ -161,17 +161,19 @@ public class AssistiveTouchService extends AccessibilityService {
             }
         });
 
-        mAssistiveTouchView.setOnClickListener(view -> { performGlobalAction(GLOBAL_ACTION_BACK); });
-        mAssistiveTouchView.setOnLongClickListener(view -> {
-            try {
-                Class<?> cls = Class.forName("android.os.EinkManager");
-                Method method = cls.getMethod("sendOneFullFrame");
-                Object einkManager = this.getSystemService("eink");
-                method.invoke(einkManager);
-            } catch (Exception ignored) {
-            }
-            return true;
-        });
+//        mAssistiveTouchView.setOnClickListener(view -> {
+//            performGlobalAction(GLOBAL_ACTION_BACK);
+//        });
+//        mAssistiveTouchView.setOnLongClickListener(view -> {
+//            try {
+//                Class<?> cls = Class.forName("android.os.EinkManager");
+//                Method method = cls.getMethod("sendOneFullFrame");
+//                Object einkManager = this.getSystemService("eink");
+//                method.invoke(einkManager);
+//            } catch (Exception ignored) {
+//            }
+//            return true;
+//        });
     }
 
 
@@ -196,7 +198,7 @@ public class AssistiveTouchService extends AccessibilityService {
             public void onAnimationEnd(Animator animation) {
                 super.onAnimationEnd(animation);
                 if (flag)
-                    mAssistiveTouchView.setAlpha(0.6f);
+                    mAssistiveTouchView.setAlpha(0.4f);
             }
         });
         return v1;
@@ -228,7 +230,7 @@ public class AssistiveTouchService extends AccessibilityService {
                 case 2:
                 default:
                     mWindowManager.removeView(mInflateAssistiveTouchView);
-                    mAssistiveTouchView.setAlpha(0.6f);
+                    mAssistiveTouchView.setAlpha(0.4f);
                     break;
             }
             super.handleMessage(msg);
