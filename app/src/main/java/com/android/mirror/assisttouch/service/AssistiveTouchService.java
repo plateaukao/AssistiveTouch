@@ -81,7 +81,7 @@ public class AssistiveTouchService extends AccessibilityService {
         mWindowManager = (WindowManager) this.getSystemService(WINDOW_SERVICE);
         mInflater = LayoutInflater.from(this);
         mAssistiveTouchView = mInflater.inflate(R.layout.assistive_touch_layout, null);
-        mAssistiveTouchView.setAlpha(0.4f);
+        mAssistiveTouchView.setAlpha(1.0f);
     }
 
     private void calculateForMyPhone() {
@@ -150,12 +150,14 @@ public class AssistiveTouchService extends AccessibilityService {
                         AssistiveTouchService.this.setAssistiveTouchViewAlign();
                         break;
                     case MotionEvent.ACTION_MOVE:
-                        if (Math.abs(rawX - initX) > 50 || Math.abs(rawY - initY) > 50) {
+                        Context context = AssistiveTouchService.this;
+                        float threshold = SystemsUtils.convertDpToPixel(15, context);
+                        if (Math.abs(rawX - initX) > threshold || Math.abs(rawY - initY) > threshold) {
                             isMoving = true;
+                            mParams.x = (int) (rawX - mAssistiveTouchView.getMeasuredWidth() / 2);
+                            mParams.y = (int) (rawY - mAssistiveTouchView.getMeasuredHeight() / 2 - mStatusBarHeight);
+                            mWindowManager.updateViewLayout(mAssistiveTouchView, mParams);
                         }
-                        mParams.x = (int) (rawX - mAssistiveTouchView.getMeasuredWidth() / 2);
-                        mParams.y = (int) (rawY - mAssistiveTouchView.getMeasuredHeight() / 2 - mStatusBarHeight);
-                        mWindowManager.updateViewLayout(mAssistiveTouchView, mParams);
                 }
                 if (isMoving)
                     return true;
@@ -180,14 +182,6 @@ public class AssistiveTouchService extends AccessibilityService {
                 mParams.x = x;
                 mParams.y = y;
                 mWindowManager.updateViewLayout(mAssistiveTouchView, mParams);
-            }
-        });
-        v1.addListener(new AnimatorListenerAdapter() {
-            @Override
-            public void onAnimationEnd(Animator animation) {
-                super.onAnimationEnd(animation);
-                if (flag)
-                    mAssistiveTouchView.setAlpha(0.4f);
             }
         });
         return v1;
