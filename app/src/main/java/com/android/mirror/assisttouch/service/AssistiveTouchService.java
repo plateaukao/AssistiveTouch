@@ -29,6 +29,7 @@ import android.widget.PopupWindow;
 import com.android.mirror.assisttouch.R;
 import com.android.mirror.assisttouch.utils.SystemsUtils;
 
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -81,7 +82,7 @@ public class AssistiveTouchService extends AccessibilityService {
         mWindowManager = (WindowManager) this.getSystemService(WINDOW_SERVICE);
         mInflater = LayoutInflater.from(this);
         mAssistiveTouchView = mInflater.inflate(R.layout.assistive_touch_layout, null);
-        mAssistiveTouchView.setAlpha(1.0f);
+        mAssistiveTouchView.setAlpha(0.001f);
     }
 
     private void calculateForMyPhone() {
@@ -94,117 +95,19 @@ public class AssistiveTouchService extends AccessibilityService {
     @SuppressLint("ClickableViewAccessibility")
     public void createAssistiveTouchView() {
         mParams.type = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
-        mParams.width = WindowManager.LayoutParams.WRAP_CONTENT;
-        mParams.height = WindowManager.LayoutParams.WRAP_CONTENT;
+        mParams.width = WindowManager.LayoutParams.MATCH_PARENT;
+        mParams.height = WindowManager.LayoutParams.MATCH_PARENT;
         mParams.x = mScreenWidth;
         mParams.y = 520;
         mParams.gravity = Gravity.TOP | Gravity.LEFT;
         mParams.format = PixelFormat.RGBA_8888;
-        mParams.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE;
+        mParams.flags = WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE |
+                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE;
+
         mWindowManager.addView(mAssistiveTouchView, mParams);
-        mAssistiveTouchView.setOnTouchListener(new View.OnTouchListener() {
-            private GestureDetector gestureDetector = new GestureDetector(AssistiveTouchService.this.getBaseContext(), new GestureDetector.SimpleOnGestureListener() {
-                @Override
-                public void onLongPress(MotionEvent e) {
-                    if (isMoving) return;
-                    try {
-                        Class<?> cls = Class.forName("android.os.EinkManager");
-                        Method method = cls.getMethod("sendOneFullFrame");
-                        Object einkManager = AssistiveTouchService.this.getSystemService("eink");
-                        method.invoke(einkManager);
-                    } catch (Exception ignored) {
-                    }
-                    super.onLongPress(e);
-                }
-
-                @Override
-                public boolean onSingleTapConfirmed(MotionEvent e) {
-                    performGlobalAction(AssistiveTouchService.GLOBAL_ACTION_BACK);
-                    return true;
-                }
-
-                @Override
-                public boolean onDoubleTap(MotionEvent e) {
-                    performGlobalAction(AssistiveTouchService.GLOBAL_ACTION_HOME);
-                    return true;
-                }
-            });
-
-            private float initX = 0f;
-            private float initY = 0f;
-
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                gestureDetector.onTouchEvent(event);
-
-                float rawX = event.getRawX();
-                float rawY = event.getRawY();
-
-                switch (event.getAction()) {
-                    case MotionEvent.ACTION_DOWN:
-                        isMoving = false;
-                        initX = rawX;
-                        initY = rawY;
-                        break;
-                    case MotionEvent.ACTION_UP:
-                        AssistiveTouchService.this.setAssistiveTouchViewAlign();
-                        break;
-                    case MotionEvent.ACTION_MOVE:
-                        Context context = AssistiveTouchService.this;
-                        float threshold = SystemsUtils.convertDpToPixel(15, context);
-                        if (Math.abs(rawX - initX) > threshold || Math.abs(rawY - initY) > threshold) {
-                            isMoving = true;
-                            mParams.x = (int) (rawX - mAssistiveTouchView.getMeasuredWidth() / 2);
-                            mParams.y = (int) (rawY - mAssistiveTouchView.getMeasuredHeight() / 2 - mStatusBarHeight);
-                            mWindowManager.updateViewLayout(mAssistiveTouchView, mParams);
-                        }
-                }
-                if (isMoving)
-                    return true;
-                else
-                    return false;
-            }
-        });
     }
 
 
-    private ValueAnimator myAssistiveTouchAnimator(final int fromx, final int tox, int fromy, final int toy, final boolean flag) {
-        PropertyValuesHolder p1 = PropertyValuesHolder.ofInt("X", fromx, tox);
-        PropertyValuesHolder p2 = PropertyValuesHolder.ofInt("Y", fromy, toy);
-        ValueAnimator v1 = ValueAnimator.ofPropertyValuesHolder(p1, p2);
-        v1.setDuration(100L);
-        v1.setInterpolator(new DecelerateInterpolator());
-        v1.addUpdateListener(new ValueAnimator.AnimatorUpdateListener() {
-            @Override
-            public void onAnimationUpdate(ValueAnimator animation) {
-                Integer x = (Integer) animation.getAnimatedValue("X");
-                Integer y = (Integer) animation.getAnimatedValue("Y");
-                mParams.x = x;
-                mParams.y = y;
-                mWindowManager.updateViewLayout(mAssistiveTouchView, mParams);
-            }
-        });
-        return v1;
-    }
-
-    private void setAssistiveTouchViewAlign() {
-        int mAssistiveTouchViewWidth = mAssistiveTouchView.getMeasuredWidth();
-        int mAssistiveTouchViewHeight = mAssistiveTouchView.getMeasuredHeight();
-        int top = mParams.y + mAssistiveTouchViewWidth / 2;
-        int left = mParams.x + mAssistiveTouchViewHeight / 2;
-        int right = mScreenWidth - mParams.x - mAssistiveTouchViewWidth / 2;
-        int bottom = mScreenHeight - mParams.y - mAssistiveTouchViewHeight / 2;
-        int lor = Math.min(left, right);
-        int tob = Math.min(top, bottom);
-        int min = Math.min(lor, tob);
-        lastAssistiveTouchViewX = mParams.x;
-        lastAssistiveTouchViewY = mParams.y;
-        if (min == top) mParams.y = 0;
-        if (min == left) mParams.x = 0;
-        if (min == right) mParams.x = mScreenWidth - mAssistiveTouchViewWidth;
-        if (min == bottom) mParams.y = mScreenHeight - mAssistiveTouchViewHeight;
-        myAssistiveTouchAnimator(lastAssistiveTouchViewX, mParams.x, lastAssistiveTouchViewY, mParams.y, false).start();
-    }
 
     @Override
     public void onDestroy() {
