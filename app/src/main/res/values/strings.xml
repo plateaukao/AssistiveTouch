@@ -1,7 +1,5 @@
 <resources>
-    <string name="app_name">AssistTouch</string>
+    <string name="app_name">HWQuickRefresh</string>
 
-    <string name="hello_world">Hello world!</string>
-    <string name="action_settings">Settings</string>
-    <string name="accessibility_service_description">description</string>
+    <string name="accessibility_service_description">Quick refresh feature on Huawei matepad paper</string>
 </resources>
