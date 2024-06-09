@@ -6,8 +6,8 @@
         android:background="@android:color/transparent">
 
     <ImageView
-            android:layout_width="60dp"
-            android:layout_height="60dp"
+            android:layout_width="100dp"
+            android:layout_height="100dp"
             android:paddingVertical="8dp"
             android:paddingHorizontal="12dp"
             android:src="@drawable/ic_touch"

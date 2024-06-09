@@ -7,6 +7,7 @@ import android.animation.PropertyValuesHolder;
 import android.animation.ValueAnimator;
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
+import android.app.Instrumentation;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -27,6 +28,7 @@ import android.widget.ImageView;
 import android.widget.PopupWindow;
 
 import com.android.mirror.assisttouch.R;
+import com.android.mirror.assisttouch.utils.KeyEventsSender;
 import com.android.mirror.assisttouch.utils.SystemsUtils;
 
 import java.lang.reflect.Method;
@@ -48,6 +50,8 @@ public class AssistiveTouchService extends AccessibilityService {
     private WindowManager mWindowManager;
     private WindowManager.LayoutParams mParams;
 
+    private Instrumentation instrumentation;
+
     private Timer mTimer;
 
     private LayoutInflater mInflater;
@@ -58,6 +62,7 @@ public class AssistiveTouchService extends AccessibilityService {
         init();
         calculateForMyPhone();
         createAssistiveTouchView();
+        instrumentation = new Instrumentation();
     }
 
     @Override
@@ -93,7 +98,7 @@ public class AssistiveTouchService extends AccessibilityService {
 
     @SuppressLint("ClickableViewAccessibility")
     public void createAssistiveTouchView() {
-        mParams.type = WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY;
+        mParams.type = WindowManager.LayoutParams.TYPE_SYSTEM_ALERT;
         mParams.width = WindowManager.LayoutParams.WRAP_CONTENT;
         mParams.height = WindowManager.LayoutParams.WRAP_CONTENT;
         mParams.x = mScreenWidth;
@@ -108,10 +113,7 @@ public class AssistiveTouchService extends AccessibilityService {
                 public void onLongPress(MotionEvent e) {
                     if (isMoving) return;
                     try {
-                        Class<?> cls = Class.forName("android.os.EinkManager");
-                        Method method = cls.getMethod("sendOneFullFrame");
-                        Object einkManager = AssistiveTouchService.this.getSystemService("eink");
-                        method.invoke(einkManager);
+                        performGlobalAction(AssistiveTouchService.GLOBAL_ACTION_DPAD_CENTER);
                     } catch (Exception ignored) {
                     }
                     super.onLongPress(e);
@@ -119,16 +121,20 @@ public class AssistiveTouchService extends AccessibilityService {
 
                 @Override
                 public boolean onSingleTapConfirmed(MotionEvent e) {
-                    performGlobalAction(AssistiveTouchService.GLOBAL_ACTION_BACK);
+                    KeyEventsSender.sendKeyEvent("KEYCODE_BACK");
                     return true;
                 }
 
                 @Override
                 public boolean onDoubleTap(MotionEvent e) {
-                    performGlobalAction(AssistiveTouchService.GLOBAL_ACTION_HOME);
+                    KeyEventsSender.sendKeyEvent("KEYCODE_HOME");
                     return true;
                 }
             });
+
+            public void sendKeyEvent(final int keyCode) {
+                new Thread(() -> instrumentation.sendKeyDownUpSync(keyCode)).start();
+            }
 
             private float initX = 0f;
             private float initY = 0f;
